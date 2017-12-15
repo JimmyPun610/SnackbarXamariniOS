@@ -36,5 +36,6 @@ public double AnimateDuration = 0.4;
 ```
 
 Screen sample
+
 <img src="https://github.com/JimmyPun610/SnackbarXamariniOS/blob/master/Screen1.PNG" width="250">
 <img src="https://github.com/JimmyPun610/SnackbarXamariniOS/blob/master/Screen2.PNG" width="250">
