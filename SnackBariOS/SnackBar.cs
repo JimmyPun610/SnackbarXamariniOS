@@ -36,38 +36,28 @@ namespace SnackBariOS
             NSNotificationCenter.DefaultCenter.AddObserver(Self, new ObjCRuntime.Selector("rotate"), UIDevice.OrientationDidChangeNotification, null);
         }
 
-        public void CreateWithText(String text)
-        { 
-            setupSnackbarView();
-            txt.Text = text;
-            txt.TextColor = TextColor;
-            txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 95 / 100, SnackbarHeight);
-            snackbarView.AddSubview(txt);
-            show();
-        }
-
-
-
         /// Show snackbar with text and button
-        public void CreateWithAction(string text, string actionTitle, Action action)
+        public void ShowSnackBar(string text, string actionTitle = "", Action action = null)
         {
-            this.action = action;
-
             setupSnackbarView();
             txt.Text = text;
             txt.TextColor = TextColor;
-            txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 75 / 100, SnackbarHeight);
+            if (!string.IsNullOrEmpty(actionTitle) && action != null)
+            {
+                txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 75 / 100, SnackbarHeight);
+                this.action = action;   
+                btn.SetTitleColor(ButtonColor, UIControlState.Normal);
+                btn.SetTitleColor(UIColor.Gray, UIControlState.Highlighted);
+                btn.SetTitle(actionTitle, UIControlState.Normal);
+                btn.Frame = new CGRect(window.Frame.Width * 73 / 100, 0, window.Frame.Width * 25 / 100, SnackbarHeight);
+                btn.AddTarget(Self, new ObjCRuntime.Selector("actionButtonPress"), UIControlEvent.TouchUpInside);
+                snackbarView.AddSubview(btn);
+            }
+            else
+            {
+                txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 95 / 100, SnackbarHeight);
+            }
             snackbarView.AddSubview(txt);
-
-            btn.SetTitleColor(ButtonColor, UIControlState.Normal);
-
-            btn.SetTitleColor(UIColor.Gray, UIControlState.Highlighted);
-            btn.SetTitle(actionTitle, UIControlState.Normal);
-            btn.Frame = new CGRect(window.Frame.Width * 73 / 100, 0, window.Frame.Width * 25 / 100, SnackbarHeight);
-            btn.AddTarget(Self, new ObjCRuntime.Selector("actionButtonPress"), UIControlEvent.TouchUpInside);
-            snackbarView.AddSubview(btn);
-
-
             show();
         }
 
