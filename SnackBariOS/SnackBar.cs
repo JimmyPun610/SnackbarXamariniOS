@@ -5,11 +5,7 @@ using UIKit;
 
 namespace SnackBariOS
 {
-    public enum SBAnimationLength
-    {
-        Short = 0,
-        Long = 1,
-    }
+   
     public class SnackBar : NSObject
     {
         public float SnackbarHeight = 65;
@@ -17,35 +13,54 @@ namespace SnackBariOS
         public UIColor TextColor = UIColor.White;
         public UIColor ButtonColor = UIColor.Cyan;
         public UIColor ButtonColorPressed = UIColor.Gray;
-        public SBAnimationLength sbLength = SBAnimationLength.Short;
+        public int Duartion = 3;
         public double AnimateDuration = 0.4;
-
         //private variables
         private UIWindow window = UIApplication.SharedApplication.KeyWindow;
         private UIView snackbarView = new UIView();
-
-
         private UILabel txt = new UILabel();
         private UIButton btn = new UIButton();
-
-
         private Action action = null;
+        NSTimer timer = null;
+        bool isShowing = false;
+
+        private static SnackBar _instance { get; set; }
+        public static SnackBar Instance
+        {
+            get
+            {
+                if (_instance == null)
+                    _instance = new SnackBar();
+                return _instance;
+            }
+        }
 
         public SnackBar()
         {
             NSNotificationCenter.DefaultCenter.AddObserver(Self, new ObjCRuntime.Selector("rotate"), UIDevice.OrientationDidChangeNotification, null);
+            txt.LineBreakMode = UILineBreakMode.WordWrap;
+            txt.Lines = 2;
+            
         }
 
         /// Show snackbar with text and button
         public void ShowSnackBar(string text, string actionTitle = "", Action action = null)
         {
+            if (isShowing)
+            {
+                hide();
+            }
             setupSnackbarView();
             txt.Text = text;
             txt.TextColor = TextColor;
-            if (!string.IsNullOrEmpty(actionTitle) && action != null)
+            
+            if (action == null)
+                action = () => hide();
+
+            if (!string.IsNullOrEmpty(actionTitle))
             {
                 txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 75 / 100, SnackbarHeight);
-                this.action = action;   
+                this.action = action;
                 btn.SetTitleColor(ButtonColor, UIControlState.Normal);
                 btn.SetTitleColor(UIColor.Gray, UIControlState.Highlighted);
                 btn.SetTitle(actionTitle, UIControlState.Normal);
@@ -58,34 +73,35 @@ namespace SnackBariOS
                 txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 95 / 100, SnackbarHeight);
             }
             snackbarView.AddSubview(txt);
+            
             show();
         }
 
 
         private void show()
         {
-            switch (sbLength)
-            {
-                case SBAnimationLength.Short:
-                    animateBar(2);
-                    break;
-                case SBAnimationLength.Long:
-                    animateBar(3);
-                    break;
-            }
+            animateBar(Duartion);
         }
         private void setupSnackbarView()
-        {
+        {   
             window.AddSubview(snackbarView);
             snackbarView.Frame = new CGRect(0, window.Frame.Height, window.Frame.Width, SnackbarHeight);
             snackbarView.BackgroundColor = this.BackgroundColor;
         }
-        private void animateBar(float timerLength)
+        private void animateBar(int timerLength)
         {
+            isShowing = true;
             UIView.Animate(AnimateDuration, () =>
             {
                 this.snackbarView.Frame = new CGRect(0, this.window.Frame.Height - this.SnackbarHeight, this.window.Frame.Width, this.SnackbarHeight);
-                NSTimer.CreateScheduledTimer(timerLength, false, (NSTimer obj) =>
+                if(timer != null)
+                {
+                    timer.Invalidate();
+                    timer = null;
+                }
+                    
+                        
+                timer = NSTimer.CreateScheduledTimer(timerLength, false, (NSTimer obj) =>
                 {
                     hide();
                 });
@@ -110,6 +126,7 @@ namespace SnackBariOS
         [Foundation.Export("hide")]
         private void hide()
         {
+            isShowing = false;
             UIView.Animate(AnimateDuration, () => {
                 this.snackbarView.Frame = new CGRect(0, this.window.Frame.Height, this.window.Frame.Width, this.SnackbarHeight);
             });
