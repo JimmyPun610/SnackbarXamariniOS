@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using CoreGraphics;
 using Foundation;
 using UIKit;
@@ -13,17 +14,24 @@ namespace SnackBariOS
         public UIColor TextColor = UIColor.White;
         public UIColor ButtonColor = UIColor.Cyan;
         public UIColor ButtonColorPressed = UIColor.Gray;
-        public int Duartion = 3;
-        public double AnimateDuration = 0.4;
+        public double AnimateDuration = 0.5;
         //private variables
         private UIWindow window = UIApplication.SharedApplication.KeyWindow;
-        private UIView snackbarView = new UIView();
+        private UIView snackbarView = null;
         private UILabel txt = new UILabel();
         private UIButton btn = new UIButton();
         private Action action = null;
+        public nfloat Alpha = 100;
         NSTimer timer = null;
-        bool isShowing = false;
-
+        AutoResetEvent autoResetEvent = new AutoResetEvent(false);
+        public int Duration = 3;
+        private bool isShowing
+        {
+            get
+            {
+                return snackbarView != null;
+            }
+        }
         private static SnackBar _instance { get; set; }
         public static SnackBar Instance
         {
@@ -47,40 +55,53 @@ namespace SnackBariOS
         public void ShowSnackBar(string text, string actionTitle = "", Action action = null)
         {
             if (isShowing)
+                hideNow();
+            //Unblock thread
+            autoResetEvent.Set();
+            new Thread(() =>
             {
-                hide();
-            }
-            setupSnackbarView();
-            txt.Text = text;
-            txt.TextColor = TextColor;
-            
-            if (action == null)
-                action = () => hide();
+                autoResetEvent.WaitOne();
+                autoResetEvent.Reset();
+                InvokeOnMainThread(() =>
+                {
+                    snackbarView = new UIView();
+                    float y = (float)window.Bounds.Size.Height - SnackbarHeight - (float)window.SafeAreaInsets.Bottom;
+                    snackbarView.Frame = new CGRect(0, y, window.Frame.Width, SnackbarHeight + (float)window.SafeAreaInsets.Bottom);
+                    snackbarView.BackgroundColor = this.BackgroundColor;
+                    snackbarView.Alpha = Alpha;
+                    txt.Text = text;
+                    txt.TextColor = TextColor;
 
-            if (!string.IsNullOrEmpty(actionTitle))
-            {
-                txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 75 / 100, SnackbarHeight);
-                this.action = action;
-                btn.SetTitleColor(ButtonColor, UIControlState.Normal);
-                btn.SetTitleColor(UIColor.Gray, UIControlState.Highlighted);
-                btn.SetTitle(actionTitle, UIControlState.Normal);
-                btn.Frame = new CGRect(window.Frame.Width * 73 / 100, 0, window.Frame.Width * 25 / 100, SnackbarHeight);
-                btn.AddTarget(Self, new ObjCRuntime.Selector("actionButtonPress"), UIControlEvent.TouchUpInside);
-                snackbarView.AddSubview(btn);
-            }
-            else
-            {
-                txt.Frame = new CGRect(window.Frame.Width * 5 / 100, 0, window.Frame.Width * 95 / 100, SnackbarHeight);
-            }
-            snackbarView.AddSubview(txt);
-            
-            show();
+                    if (action == null)
+                        action = () => hide();
+                    float margin = 8;
+
+                    if (!string.IsNullOrEmpty(actionTitle))
+                    {
+                        txt.Frame = new CGRect(margin, 0, window.Frame.Width * 0.75, SnackbarHeight);
+                        this.action = action;
+                        btn.SetTitleColor(ButtonColor, UIControlState.Normal);
+                        btn.SetTitleColor(UIColor.Gray, UIControlState.Highlighted);
+                        btn.SetTitle(actionTitle, UIControlState.Normal);
+                        btn.Frame = new CGRect(window.Frame.Width * 0.75 - margin, 0, window.Frame.Width * 0.25 + margin, SnackbarHeight);
+                        btn.AddTarget(Self, new ObjCRuntime.Selector("actionButtonPress"), UIControlEvent.TouchUpInside);
+                        snackbarView.AddSubview(btn);
+                    }
+                    else
+                    {
+                        txt.Frame = new CGRect(margin, 0, window.Frame.Width - margin, SnackbarHeight);
+                    }
+                    snackbarView.AddSubview(txt);
+                    show(Duration);
+                });
+  
+            }).Start();
         }
 
 
-        private void show()
+        private void show(int Duration)
         {
-            animateBar(Duartion);
+            animateBar(Duration);
         }
         private void setupSnackbarView()
         {   
@@ -90,17 +111,16 @@ namespace SnackBariOS
         }
         private void animateBar(int timerLength)
         {
-            isShowing = true;
             UIView.Animate(AnimateDuration, () =>
             {
-                this.snackbarView.Frame = new CGRect(0, this.window.Frame.Height - this.SnackbarHeight, this.window.Frame.Width, this.SnackbarHeight);
-                if(timer != null)
+                window.AddSubview(snackbarView);
+            }, () =>
+            {
+                if (timer != null)
                 {
                     timer.Invalidate();
                     timer = null;
                 }
-                    
-                        
                 timer = NSTimer.CreateScheduledTimer(timerLength, false, (NSTimer obj) =>
                 {
                     hide();
@@ -111,8 +131,12 @@ namespace SnackBariOS
         [Foundation.Export("rotate")]
         private void rotate()
         {
-            this.snackbarView.Frame = new CGRect(0, this.window.Frame.Height - this.SnackbarHeight, this.window.Frame.Width, this.SnackbarHeight);
-            btn.Frame = new CGRect(window.Frame.Width * 73 / 100, 0, window.Frame.Width * 25 / 100, SnackbarHeight);
+            if (snackbarView != null)
+            {
+                float y = (float)window.Bounds.Size.Height - SnackbarHeight - (float)window.SafeAreaInsets.Bottom;
+                snackbarView.Frame = new CGRect(0, y, window.Frame.Width, SnackbarHeight + window.SafeAreaInsets.Bottom);
+                btn.Frame = new CGRect(window.Frame.Width * 73 / 100, 0, window.Frame.Width * 25 / 100, SnackbarHeight);
+            }
         }
 
         [Foundation.Export("actionButtonPress")]
@@ -126,11 +150,30 @@ namespace SnackBariOS
         [Foundation.Export("hide")]
         private void hide()
         {
-            isShowing = false;
+
             UIView.Animate(AnimateDuration, () => {
-                this.snackbarView.Frame = new CGRect(0, this.window.Frame.Height, this.window.Frame.Width, this.SnackbarHeight);
+                if (snackbarView != null)
+                    snackbarView.Alpha = nfloat.Parse("0");
+            }, () =>
+            {
+                if (snackbarView != null)
+                {
+                    snackbarView.RemoveFromSuperview();
+                    snackbarView = null;
+                }
+                autoResetEvent.Set();
             });
         }
+        private void hideNow()
+        {
+            if (snackbarView != null)
+            {
+                snackbarView.RemoveFromSuperview();
+                snackbarView = null;
+            }
+            autoResetEvent.Set();
+        }
     }
+    
 }
 

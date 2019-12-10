@@ -1,14 +1,15 @@
 # SnackbarXamariniOS
 For Xamarin iOS snackbar which is similar to Android. 
 
-Rewrite from swift code by https://github.com/JastAir/Snackbar-iOS
+#### Xamarin Forms version
+https://github.com/JimmyPun610/Plugin.XF.Controls
 
-Screen sample
+####Screen sample
 
 <img src="https://github.com/JimmyPun610/SnackbarXamariniOS/blob/master/Screen1.PNG" width="250">
 <img src="https://github.com/JimmyPun610/SnackbarXamariniOS/blob/master/Screen2.PNG" width="250">
 
-Basic Usage 
+####Basic Usage 
 
 1. Add the snackbar to your iOS project as reference.
 
