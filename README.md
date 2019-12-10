@@ -1,6 +1,6 @@
 # SnackbarXamariniOS
 For Xamarin iOS snackbar which is similar to Android. 
-This project will be frozen, please refer to Xamarin Forms one.
+This project will not update from now, please refer to Xamarin Forms one.
 
 #### Xamarin Forms version
 https://github.com/JimmyPun610/Plugin.XF.Controls
